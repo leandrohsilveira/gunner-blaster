@@ -1,0 +1,349 @@
+<html>
+	<head>
+		<meta charset="utf-8"> 
+	    <title>Canhão</title>
+	    <style>
+		form {
+		width:330px;
+		margin:20px;
+		background-color:brown;
+		padding:20px;
+		color:yellow;
+		}
+		#pontuacao{
+			vertical-align: top;
+			
+		}
+		</style>
+	    <script type="text/javascript">
+	    //define bola, imagem, retangulos para objeto em canvas. Cada um tem um método de desenho.
+		//Cada objeto desenhado no canbas corresponde a um elemento no array everything.
+		//cada elemento é um array, com alguns dos valore usados para fazer uma rotação.
+		var cwidth;
+		var cheight;
+		var ctx;
+		var everything = [];
+		var tid;
+		var outofcannon;
+		var horvelocity;
+		var verticalvel1;
+		var verticalvel2;
+		var gravity; //define a gravidade da bola
+		var cannonx;
+		var cannony;
+		var cannonlength;
+		var cannonht;
+		var ballrad;
+		var targetx;
+		var targety;
+		var targetw;
+		var targeth;
+		var htargetx;
+		var htargety;
+		var htargetw;
+		var htargeth;
+		var groundx;
+		var groundy;
+		var groundw;
+		var groundh;
+		var target;
+		var htarget;
+		var ground;
+		var cannon;
+		var targetindex;
+		var ballindex;
+		var cannonindex;
+		var processandoAnimacao;
+		var tiros = 10;
+		
+		if(typeof pontos == undefined || isNaN(pontos)){
+			var pontos = 0;
+		} else{
+			pontos +=pontos;
+		}
+
+		
+
+		function setValues() {
+			cwidth = 800;
+			cheight = 400;
+			ctx;
+			everything = [];
+			tid;
+			outofcannon;
+			horvelocity;
+			maxv = 70;
+			maxangle = 90;
+			minv = 10;
+			verticalvel1;
+			verticalvel2;
+			gravity = 2;  //define a gravidade da bola
+			cannonx = 10;
+			cannony = 280;
+			cannonlength = 200;
+			cannonht = 20;
+			ballrad = 10;
+			targetx = 750;
+			targety = 0 + (Math.random() * 250);
+			targetw = 40;
+			targeth = 50;
+			htargetx = 450;
+			htargety = 220;
+			htargetw = 355;
+			htargeth = 96;
+			groundx = 0;
+			groundy = 300;
+			groundw = 800;
+			groundh = 600;
+			processandoAnimacao = false;
+
+			target = new Picture(targetx,targety,targetw,targeth,"imagens/alvo.jpg");
+			ground = new Myrectangle(groundx,groundy,groundw,groundh,"rgb(0,150,0)");
+			cannon = new Myrectangle(cannonx,cannony,cannonlength,cannonht,"rgb(40,40,0)");
+			targetindex = everything.length;
+			everything.push([target,false]);
+			everything.push([ground,false]);
+			ballindex = everything.length;
+			everything.push([cball,false]);
+			cannonindex = everything.length;  //save to use later
+			everything.push([cannon,true,0,cannonx,cannony+cannonht*.5]);  // will set rotation later
+		}
+
+		setValues();
+			
+		function Ball(sx,sy,rad,stylestring) {
+		  this.sx = sx;
+		  this.sy = sy;
+		  this.rad = rad;
+		  this.draw = drawball;
+		  this.moveit = moveball;
+		  this.fillstyle = stylestring;
+		}
+
+		function drawball() {
+			ctx.fillStyle=this.fillstyle;
+			ctx.beginPath();
+			ctx.arc(this.sx,this.sy,this.rad,0,Math.PI*2,true);
+			ctx.fill();	
+		}
+
+		//função que mostra a pontuação
+		function pontuacao(){
+			var spanPontuacao = document.getElementById("pontuacao");
+			if (typeof spanPontuacao != 'undefined') {
+				var pontos = new Number(spanPontuacao.innerHTML);
+				pontos += (80 - outofcannon);
+				spanPontuacao.innerHTML = pontos;
+			}
+		}
+
+		function moveball(dx,dy) {
+			this.sx +=dx;
+			this.sy +=dy;
+		}
+
+		var cball = new Ball(cannonx+cannonlength,cannony+cannonht*.5,ballrad,"rgb(250,0,0)");
+
+
+		//função que dispara o som do tiro de canhão
+		function playAudioCanhao() {
+		    var som = new Audio("audio/canhao.wav");
+		    som.play();
+		}
+
+
+		function Myrectangle(sx,sy,swidth,sheight,stylestring) {
+			this.sx = sx;
+			this.sy = sy;
+			this.swidth = swidth;
+			this.sheight = sheight;
+			this.fillstyle = stylestring;
+			this.draw = drawrects;
+			this.moveit = moveball;
+		}
+
+		function drawrects() {
+			ctx.fillStyle = this.fillstyle;
+			ctx.fillRect(this.sx,this.sy,this.swidth,this.sheight);	
+		}
+
+
+		//OBJETO DE IMAGEM,
+		function Picture (sx,sy,swidth,sheight,filen) {
+			var imga = new Image();
+			imga.src=filen;
+			this.sx = sx;
+			this.sy = sy;
+			this.img = imga;
+			this.swidth = swidth;
+			this.sheight = sheight;
+			this.draw = drawAnImage;
+			this.moveit = moveball;
+		}
+		function drawAnImage() {
+			ctx.drawImage(this.img,this.sx,this.sy,this.swidth,this.sheight);
+		}
+
+
+		function init(){
+			//INICIALIZANDO CANVAS
+			ctx = document.getElementById('canvas').getContext('2d'); 
+			//INICIALIZANDO VALORES DE CONFIGURAÇÕES.
+		  	setValues();
+		  	//DESENHAR OBJETOS.
+		  	drawall();  
+		} 
+		function fire() {
+			//VERIFICA SE A ANIMAÇÃO ESTÁ SENDO PROCESSADA.
+			if(!processandoAnimacao && tiros > 0) {
+				tiros--;
+				spanTiros = document.getElementById("tiros");
+				if(spanTiros) {
+					spanTiros.innerHTML = tiros;
+				}
+				var a = Number(document.f.ang.value);
+				var v = Number(document.f.vo.value);
+				if(a < 0) a = 0;
+				if(a > maxangle) a = maxangle;
+				if(v < minv) v = minv;
+				if(v > maxv) v = maxv;
+				document.f.ang.value = a;
+				document.f.vo.value = v;
+				processandoAnimacao = true;
+				//SOM DO CANHÃO
+				playAudioCanhao();
+				//DESENHANDO TRAJETO
+				drawall();
+				//FUNÇÃO DE LOOP COM INTERVALO DE 50 MILISSEGUNDOS CHAMANDO FUNÇÃO 'change()' QUE IRÁ PROCESSAR ANIMAÇÃO E VERIFICAR SE ATINGIU O ALVO OU O CHÃO.
+				tid = setInterval(change,50);
+			}
+			return false;
+		}
+
+		function drawall() {
+			ctx.clearRect(0,0,cwidth,cheight);
+			var i;
+			for (i=0;i<everything.length;i++) {
+				var ob = everything[i];
+				if (ob[1]) {  //need to translate and rotate
+					ctx.save();
+					ctx.translate(ob[3],ob[4]);
+					ctx.rotate(ob[2]);
+					ctx.translate(-ob[3],-ob[4]);
+					ob[0].draw();
+					ctx.restore(); }
+				else {
+				  ob[0].draw();
+				}
+			}
+		}
+
+		function keypress(keyEvent) {
+			if(!processandoAnimacao) {
+				//UP: 38
+				//DOWN: 40
+				//RIGHT: 39
+				//LEFT: 37
+
+				var k;
+				if(keyEvent) {
+					k = keyEvent.keyCode;
+				}
+				var a = Number(document.f.ang.value);
+				var v = Number(document.f.vo.value);
+
+				//VERIFICANDO TECLA PRESSIONADA:
+				if(k === 38 && a < maxangle) {
+					//CIMA
+					a++;
+				} else if(k === 40 && a > 0) {
+					//BAIXO
+					a--;
+				} else if(k === 39 && v < maxv) {
+					//DIREITA
+					v++;
+				} else if(k === 37 && v > minv) {
+					//ESQUERDA
+					v--;
+				} else if(k === 13) {
+					//ENTER
+					document.getElementById('fireButton').click();
+				}
+
+				//ATUALIZAR POSIÇÃO DO CANHÃO E DA BOLA QUE ESTÁ NA PONTA.
+				document.f.ang.value = a;
+				document.f.vo.value = v;
+				drawall();
+			  	var angle = Number(document.f.ang.value);
+			  	outofcannon = Number(document.f.vo.value);
+			  	var angleradians = angle*Math.PI/180;
+			  	horvelocity =  outofcannon*Math.cos(angleradians);
+			  	verticalvel1 = - outofcannon*Math.sin(angleradians);
+			  	everything[cannonindex][2]= - angleradians;
+			  	cball.sx = cannonx + cannonlength*Math.cos(angleradians);
+			  	cball.sy = cannony+cannonht*.5 - cannonlength*Math.sin(angleradians);
+			}
+		}
+
+		function change() {
+			//CALCULANDO MOVIMENTO.
+			var dx = horvelocity;
+			verticalvel2 = verticalvel1 + gravity;
+			var dy = (verticalvel1 + verticalvel2)*.5;
+			verticalvel1 = verticalvel2;
+			//EXECUTANDO MOVIMENTO.
+			cball.moveit(dx,dy);
+			//Posição da bola.
+			var bx = cball.sx;
+			var by = cball.sy;
+
+			//verifica se atingiu o alvo
+			if ((bx>=target.sx)&&(bx<=(target.sx+target.swidth))&&
+			(by>=target.sy)&&(by<=(target.sy+target.sheight))) {
+				//ACERTOU O ALVO.
+				clearInterval(tid);
+				//remove target e insere htarget
+				//everything.splice(targetindex,1,[htarget,false]);
+				//everything.splice(ballindex,1);
+				drawall();
+				//
+				pontuacao();
+				//REINICIANDO VALORES. (exceto pontuação).
+				setValues();
+			//verifica se alcançou o chão
+			} else if (by>=ground.sy || bx >= cwidth) {
+				//ATINGIU O CHÃO
+				clearInterval(tid);
+				processandoAnimacao = false;
+				drawall();
+				setValues();
+			} else {
+				drawall();
+			}
+		}
+
+	</script>
+	</head>
+	<body onLoad="init();" onkeydown='keypress(event)'>  
+		<h1> Você tem <span id="pontuacao">0</span>  pontos e <span id="tiros">10</span> tiros restantes.</h1>
+		<div style="clear:both;"></div>
+		<canvas id="canvas" width="800" height="400">
+
+		Seu browser não suporta o elemento canvas do HTML5.
+		</canvas>
+
+		<br/>
+		<form name="f" id="f">
+			Defina a velocidade, ângulo e clique em atirar. <br/>
+			Ou utilize as teclas [CIMA/BAIXO para angulo, DIREITA/ESQUERDA para velocidade e ENTER para atirar]
+			<br>
+			<br>
+			Velocidade do canhão <input name="vo" id="vo" value="30" type="number" min="10" max="70" /> 
+			<br>
+			Ângulo <input name="ang" id="ang" value="0" type="number" min="0" max="90" onchange="keypress();" />
+
+			<input id="fireButton" type="button" value="FOGO" onclick="return fire();"/>
+			<input id="resetButton" type="button" value="Reiniciar" onclick="document.f.submit();" />
+		</form> 
+	</body>
+</html>
